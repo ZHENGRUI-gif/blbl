@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试分类API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #00aeec;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0088cc;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <h1>分类API测试页面</h1>
+    
+    <div class="test-section">
+        <h3>1. 测试分类API</h3>
+        <p>测试获取特定分类下的视频</p>
+        <button onclick="testCategoryAPI('douga')">测试动画分类</button>
+        <button onclick="testCategoryAPI('game')">测试游戏分类</button>
+        <button onclick="testCategoryAPI('music')">测试音乐分类</button>
+        <div id="api-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 测试前端页面</h3>
+        <p>点击下面的链接测试前端分类页面</p>
+        <a href="http://localhost:8080/v/douga" target="_blank" style="display: inline-block; background-color: #00aeec; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin: 5px;">动画分类页面</a>
+        <a href="http://localhost:8080/v/game" target="_blank" style="display: inline-block; background-color: #00aeec; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin: 5px;">游戏分类页面</a>
+        <a href="http://localhost:8080/v/music" target="_blank" style="display: inline-block; background-color: #00aeec; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin: 5px;">音乐分类页面</a>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8787/api';
+
+
+        async function testCategoryAPI(mcId) {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.textContent = `正在测试 ${mcId} 分类...`;
+            resultDiv.className = 'result';
+
+            try {
+                const response = await fetch(`${API_BASE}/video/category?mcId=${mcId}&rule=1&page=1&quantity=5`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = `${mcId} 分类测试成功！\n视频数量: ${data.data.count}\n视频列表: ${JSON.stringify(data.data.list, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `${mcId} 分类测试失败：\n${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `请求失败：${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+    </script>
+</body>
+</html>
