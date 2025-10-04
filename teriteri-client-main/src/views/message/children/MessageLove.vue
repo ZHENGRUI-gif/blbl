@@ -27,7 +27,7 @@
                         <!-- 用户信息和点赞操作 -->
                         <div class="love-header">
                             <div class="user-section">
-                                <VAvatar :img="item.user.avatar" :size="48" :auth="item.user.auth"></VAvatar>
+                                <VAvatar :img="item.user.avatar_url" :size="48" :auth="item.user.auth"></VAvatar>
                                 <div class="user-info">
                                     <div class="user-name" :class="item.user.vip !== 0 ? 'vip-name' : ''">
                                         {{ item.user.nickname }}
@@ -125,7 +125,7 @@
                             
                             <div class="likers-list" v-show="expandedGroups[videoId]">
                                 <div class="liker-item" v-for="(like, index) in group.likes" :key="index">
-                                    <VAvatar :img="like.user.avatar" :size="32" :auth="like.user.auth"></VAvatar>
+                                    <VAvatar :img="like.user.avatar_url" :size="40" :auth="like.user.auth"></VAvatar>
                                     <div class="liker-info">
                                         <div class="liker-name" :class="like.user.vip !== 0 ? 'vip-name' : ''">
                                             {{ like.user.nickname }}
