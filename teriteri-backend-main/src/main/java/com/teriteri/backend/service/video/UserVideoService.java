@@ -1,6 +1,8 @@
 package com.teriteri.backend.service.video;
 
 import com.teriteri.backend.pojo.UserVideo;
+import java.util.List;
+import java.util.Map;
 
 public interface UserVideoService {
     /**
@@ -28,4 +30,13 @@ public interface UserVideoService {
      * @param isCollect 是否收藏 true收藏 false取消
      */
     void collectOrCancel(Integer uid, Integer vid, boolean isCollect);
+
+    /**
+     * 获取用户收到的点赞列表（其他用户给该用户视频的点赞）
+     * @param uid   用户ID（视频作者）
+     * @param offset    偏移量
+     * @param quantity  查询数量
+     * @return  点赞记录列表，包含点赞用户信息、视频信息、点赞时间
+     */
+    List<Map<String, Object>> getReceivedLikes(Integer uid, Integer offset, Integer quantity);
 }

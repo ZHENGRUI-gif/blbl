@@ -3,9 +3,11 @@ package com.teriteri.backend.service.impl.video;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.teriteri.backend.im.IMServer;
+import com.teriteri.backend.mapper.UserMapper;
 import com.teriteri.backend.mapper.UserVideoMapper;
 import com.teriteri.backend.mapper.VideoMapper;
 import com.teriteri.backend.pojo.IMResponse;
+import com.teriteri.backend.pojo.User;
 import com.teriteri.backend.pojo.UserVideo;
 import com.teriteri.backend.pojo.Video;
 import com.teriteri.backend.service.message.MsgUnreadService;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 @Service
 public class UserVideoServiceImpl implements UserVideoService {
@@ -35,6 +38,9 @@ public class UserVideoServiceImpl implements UserVideoService {
 
     @Autowired
     private VideoMapper videoMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     @Autowired
     private RedisUtil redisUtil;
@@ -215,5 +221,92 @@ public class UserVideoServiceImpl implements UserVideoService {
             videoStatsService.updateStats(vid, "collect", isCollect, 1);
         }, taskExecutor);
         userVideoMapper.update(null, updateWrapper);
+    }
+
+    /**
+     * 获取用户收到的点赞列表（其他用户给该用户视频的点赞）
+     * @param uid   用户ID（视频作者）
+     * @param offset    偏移量
+     * @param quantity  查询数量
+     * @return  点赞记录列表，包含点赞用户信息、视频信息、点赞时间
+     */
+    @Override
+    public List<Map<String, Object>> getReceivedLikes(Integer uid, Integer offset, Integer quantity) {
+        if (offset == null) offset = 0;
+        if (quantity == null) quantity = 10;
+        
+        // 先查询该用户的所有视频ID
+        QueryWrapper<Video> videoQueryWrapper = new QueryWrapper<>();
+        videoQueryWrapper.select("vid").eq("uid", uid).ne("status", 3);
+        List<Video> userVideoList = videoMapper.selectList(videoQueryWrapper);
+
+        if (userVideoList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        List<Integer> userVideoIds = userVideoList.stream().map(Video::getVid).collect(Collectors.toList());
+        
+        // 查询这些视频的点赞记录，按点赞时间倒序
+        QueryWrapper<UserVideo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("love", 1)
+                   .isNotNull("love_time")
+                   .in("vid", userVideoIds)
+                   .orderByDesc("love_time")
+                   .last("LIMIT " + offset + ", " + quantity);
+        
+        List<UserVideo> userVideos = userVideoMapper.selectList(queryWrapper);
+
+        if (userVideos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        // 获取所有相关的视频ID和用户ID
+        List<Integer> vidList = userVideos.stream().map(UserVideo::getVid).collect(Collectors.toList());
+        List<Integer> uidList = userVideos.stream().map(UserVideo::getUid).collect(Collectors.toList());
+        
+        // 批量查询视频信息
+        QueryWrapper<Video> videoBatchQueryWrapper = new QueryWrapper<>();
+        videoBatchQueryWrapper.in("vid", vidList);
+        List<Video> videos = videoMapper.selectList(videoBatchQueryWrapper);
+        Map<Integer, Video> videoMap = videos.stream().collect(Collectors.toMap(Video::getVid, v -> v));
+        
+        // 批量查询用户信息
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper.in("uid", uidList);
+        List<User> users = userMapper.selectList(userQueryWrapper);
+        Map<Integer, User> userMap = users.stream().collect(Collectors.toMap(User::getUid, u -> u));
+        
+        // 组装结果
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (UserVideo userVideo : userVideos) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("userVideo", userVideo);
+            item.put("video", videoMap.get(userVideo.getVid()));
+            
+            // 转换用户信息，将avatar字段映射为avatar_url
+            User user = userMap.get(userVideo.getUid());
+            Map<String, Object> userInfo = new HashMap<>();
+            if (user != null) {
+                userInfo.put("uid", user.getUid());
+                userInfo.put("nickname", user.getNickname());
+                userInfo.put("avatar_url", user.getAvatar()); // 关键：将avatar映射为avatar_url
+                userInfo.put("bg_url", user.getBackground());
+                userInfo.put("gender", user.getGender());
+                userInfo.put("description", user.getDescription());
+                userInfo.put("exp", user.getExp());
+                userInfo.put("coin", user.getCoin());
+                userInfo.put("vip", user.getVip());
+                userInfo.put("state", user.getState());
+                userInfo.put("auth", user.getAuth());
+                userInfo.put("authMsg", user.getAuthMsg());
+            }
+            item.put("user", userInfo);
+            
+            // 获取视频统计数据
+            item.put("stats", videoStatsService.getVideoStatsById(userVideo.getVid()));
+            result.add(item);
+        }
+        
+        return result;
     }
 }

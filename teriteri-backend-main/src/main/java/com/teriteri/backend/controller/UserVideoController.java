@@ -4,6 +4,7 @@ import com.teriteri.backend.pojo.CustomResponse;
 import com.teriteri.backend.service.utils.CurrentUser;
 import com.teriteri.backend.service.video.UserVideoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,6 +44,21 @@ public class UserVideoController {
         Integer uid = currentUser.getUserId();
         CustomResponse customResponse = new CustomResponse();
         customResponse.setData(userVideoService.setLoveOrUnlove(uid, vid, isLove, isSet));
+        return customResponse;
+    }
+
+    /**
+     * 获取当前用户收到的点赞列表
+     * @param offset    偏移量
+     * @param quantity  查询数量
+     * @return  收到的点赞列表
+     */
+    @GetMapping("/video/received-likes")
+    public CustomResponse getReceivedLikes(@RequestParam(value = "offset", defaultValue = "0") Integer offset,
+                                          @RequestParam(value = "quantity", defaultValue = "10") Integer quantity) {
+        Integer uid = currentUser.getUserId();
+        CustomResponse customResponse = new CustomResponse();
+        customResponse.setData(userVideoService.getReceivedLikes(uid, offset, quantity));
         return customResponse;
     }
 
