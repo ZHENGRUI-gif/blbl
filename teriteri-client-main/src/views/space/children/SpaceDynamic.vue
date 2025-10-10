@@ -42,12 +42,16 @@
                         <div class="dynamic-body">
                             <!-- 视频动态 -->
                             <div v-if="item.type === 'video'" class="video-dynamic">
-                                <div class="video-thumbnail">
+                                <a :href="`/video/${item.video.vid}`" target="_blank" class="video-thumbnail">
                                     <img :src="item.video.thumbnail" :alt="item.video.title">
                                     <div class="video-duration">{{ item.video.duration }}</div>
-                                </div>
+                                    <div class="video-title-overlay">
+                                        <h3 class="video-title-text">
+                                            {{ item.video.title }}
+                                        </h3>
+                                    </div>
+                                </a>
                                 <div class="video-info">
-                                    <h3 class="video-title">{{ item.video.title }}</h3>
                                     <p class="video-desc" v-if="item.video.description">{{ item.video.description }}</p>
                                     <div class="video-stats">
                                         <span class="stat-item">
@@ -397,6 +401,13 @@ export default {
     overflow: hidden;
     margin-right: 12px;
     flex-shrink: 0;
+    display: block;
+    text-decoration: none;
+    transition: transform 0.2s;
+}
+
+.video-thumbnail:hover {
+    transform: scale(1.02);
 }
 
 .video-thumbnail img {
@@ -407,30 +418,52 @@ export default {
 
 .video-duration {
     position: absolute;
-    bottom: 6px;
+    bottom: 50px;
     right: 6px;
     background: rgba(0, 0, 0, 0.7);
     color: #fff;
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 12px;
+    z-index: 10;
+}
+
+.video-title-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+    display: flex;
+    align-items: flex-end;
+    padding: 8px;
+    box-sizing: border-box;
+    min-height: 40px;
+}
+
+.video-title-text {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.3;
+    margin: 0;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .video-info {
     flex: 1;
 }
 
-.video-title {
+
+.video-desc {
     font-size: 16px;
     font-weight: 500;
     color: #222;
-    margin: 0 0 8px 0;
-    line-height: 1.4;
-}
-
-.video-desc {
-    font-size: 14px;
-    color: #666;
     margin: 0 0 8px 0;
     line-height: 1.4;
 }
