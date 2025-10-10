@@ -13,12 +13,15 @@ import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @RestController
@@ -40,6 +43,10 @@ public class VideoController {
 
     @Autowired
     private SqlSessionFactory sqlSessionFactory;
+
+    @Autowired
+    @Qualifier("taskExecutor")
+    private Executor taskExecutor;
 
     /**
      * 更新视频状态，包括过审、不通过、删除，其中审核相关需要管理员权限，删除可以是管理员或者投稿用户
@@ -152,7 +159,144 @@ public class VideoController {
 
     @GetMapping("/video/user-works-count")
     public CustomResponse getUserWorksCount(@RequestParam("uid") Integer uid) {
-        return new CustomResponse(200, "OK", redisUtil.zCard("user_video_upload:" + uid));
+        // 首先尝试从Redis获取
+        Long count = redisUtil.zCard("user_video_upload:" + uid);
+        
+        // 如果Redis中没有数据，从数据库查询
+        if (count == null || count == 0) {
+            QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("uid", uid).ne("status", 3); // 排除已删除的视频
+            count = videoMapper.selectCount(queryWrapper).longValue();
+        }
+        
+        return new CustomResponse(200, "OK", count);
+    }
+
+    /**
+     * 调试接口：检查用户投稿视频数据
+     * @param uid 用户ID
+     * @return 调试信息
+     */
+    @GetMapping("/video/debug-user-works")
+    public CustomResponse debugUserWorks(@RequestParam("uid") Integer uid) {
+        CustomResponse customResponse = new CustomResponse();
+        Map<String, Object> debugInfo = new HashMap<>();
+        
+        // 检查Redis中的数据
+        Set<Object> redisVideos = redisUtil.zReverange("user_video_upload:" + uid, 0, -1);
+        debugInfo.put("redis_videos", redisVideos);
+        debugInfo.put("redis_count", redisVideos != null ? redisVideos.size() : 0);
+        
+        // 检查数据库中的数据
+        QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("uid", uid).ne("status", 3);
+        List<Video> dbVideos = videoMapper.selectList(queryWrapper);
+        debugInfo.put("db_videos", dbVideos.stream().map(Video::getVid).collect(Collectors.toList()));
+        debugInfo.put("db_count", dbVideos.size());
+        
+        // 检查各个状态的视频数量
+        Map<String, Long> statusCount = new HashMap<>();
+        for (int status = 0; status <= 2; status++) {
+            QueryWrapper<Video> statusQuery = new QueryWrapper<>();
+            statusQuery.eq("uid", uid).eq("status", status);
+            statusCount.put("status_" + status, videoMapper.selectCount(statusQuery));
+        }
+        debugInfo.put("status_count", statusCount);
+        
+        customResponse.setData(debugInfo);
+        return customResponse;
+    }
+
+    /**
+     * 修复用户投稿视频数据：将数据库中的数据同步到Redis
+     * @param uid 用户ID
+     * @return 修复结果
+     */
+    @PostMapping("/video/fix-user-works")
+    public CustomResponse fixUserWorks(@RequestParam("uid") Integer uid) {
+        CustomResponse customResponse = new CustomResponse();
+        
+        try {
+            // 从数据库查询用户的所有已审核通过的视频
+            QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("uid", uid).eq("status", 1); // 只同步已审核通过的视频
+            List<Video> videos = videoMapper.selectList(queryWrapper);
+            
+            if (videos.isEmpty()) {
+                customResponse.setMessage("用户 " + uid + " 没有已审核通过的视频");
+                customResponse.setData(0);
+                return customResponse;
+            }
+            
+            // 将视频ID添加到Redis
+            int syncedCount = 0;
+            for (Video video : videos) {
+                redisUtil.zset("user_video_upload:" + uid, video.getVid());
+                syncedCount++;
+            }
+            
+            customResponse.setMessage("成功同步 " + syncedCount + " 个视频到Redis");
+            customResponse.setData(syncedCount);
+        } catch (Exception e) {
+            e.printStackTrace();
+            customResponse.setCode(500);
+            customResponse.setMessage("同步失败: " + e.getMessage());
+        }
+        
+        return customResponse;
+    }
+
+    /**
+     * 批量修复所有用户的投稿视频数据：将数据库中的数据同步到Redis
+     * @return 修复结果
+     */
+    @PostMapping("/video/fix-all-user-works")
+    public CustomResponse fixAllUserWorks() {
+        CustomResponse customResponse = new CustomResponse();
+        
+        try {
+            // 查询所有已审核通过的视频
+            QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("status", 1); // 只同步已审核通过的视频
+            List<Video> videos = videoMapper.selectList(queryWrapper);
+            
+            if (videos.isEmpty()) {
+                customResponse.setMessage("数据库中没有已审核通过的视频");
+                customResponse.setData(0);
+                return customResponse;
+            }
+            
+            // 按用户分组并同步到Redis
+            Map<Integer, List<Video>> userVideosMap = videos.stream()
+                .collect(Collectors.groupingBy(Video::getUid));
+            
+            int totalSynced = 0;
+            int userCount = 0;
+            
+            for (Map.Entry<Integer, List<Video>> entry : userVideosMap.entrySet()) {
+                Integer uid = entry.getKey();
+                List<Video> userVideos = entry.getValue();
+                
+                // 将用户的所有已审核通过视频添加到Redis
+                for (Video video : userVideos) {
+                    redisUtil.zset("user_video_upload:" + uid, video.getVid());
+                    totalSynced++;
+                }
+                userCount++;
+            }
+            
+            customResponse.setMessage("成功为 " + userCount + " 个用户同步了 " + totalSynced + " 个视频到Redis");
+            Map<String, Object> result = new HashMap<>();
+            result.put("userCount", userCount);
+            result.put("videoCount", totalSynced);
+            customResponse.setData(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            customResponse.setCode(500);
+            customResponse.setMessage("批量同步失败: " + e.getMessage());
+        }
+        
+        return customResponse;
     }
 
     /**
@@ -161,27 +305,76 @@ public class VideoController {
      * @param rule  排序方式 1 投稿日期 2 播放量 3 点赞数
      * @param page  分页 从1开始
      * @param quantity  每页查询数量
+     * @param status 状态筛选 0审核中 1已过审 2未通过 null全部
      * @return  视频信息列表
      */
     @GetMapping("/video/user-works")
     public CustomResponse getUserWorks(@RequestParam("uid") Integer uid,
                                        @RequestParam("rule") Integer rule,
                                        @RequestParam("page") Integer page,
-                                       @RequestParam("quantity") Integer quantity) {
+                                       @RequestParam("quantity") Integer quantity,
+                                       @RequestParam(value = "status", required = false) Integer status) {
         CustomResponse customResponse = new CustomResponse();
         Map<String, Object> map = new HashMap<>();
+        
+        // 首先尝试从Redis获取
         Set<Object> set = redisUtil.zReverange("user_video_upload:" + uid, 0, -1);
-        if (set == null || set.isEmpty()) {
+        List<Integer> list = new ArrayList<>();
+        
+        if (set != null && !set.isEmpty()) {
+            // Redis中有数据，直接使用
+            for (Object vid : set) {
+                list.add((Integer) vid);
+            }
+        } else {
+            // Redis中没有数据，从数据库查询
+            QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("uid", uid).ne("status", 3); // 排除已删除的视频
+            queryWrapper.orderByDesc("upload_date");
+            List<Video> videos = videoMapper.selectList(queryWrapper);
+            
+            if (videos != null && !videos.isEmpty()) {
+                list = videos.stream().map(Video::getVid).collect(Collectors.toList());
+                
+                // 异步将数据写回Redis（只写入已审核通过的视频）
+                final List<Video> finalVideos = videos;
+                final Integer finalUid = uid;
+                CompletableFuture.runAsync(() -> {
+                    for (Video video : finalVideos) {
+                        if (video.getStatus() == 1) { // 只将已审核通过的视频写入Redis
+                            redisUtil.zset("user_video_upload:" + finalUid, video.getVid());
+                        }
+                    }
+                }, taskExecutor);
+            }
+        }
+        
+        // 如果指定了状态筛选，需要进一步过滤
+        if (status != null && !list.isEmpty()) {
+            List<Integer> filteredList = new ArrayList<>();
+            for (Integer vid : list) {
+                Video video = redisUtil.getObject("video:" + vid, Video.class);
+                if (video == null) {
+                    // 如果Redis中没有，从数据库查询
+                    QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
+                    queryWrapper.eq("vid", vid);
+                    video = videoMapper.selectOne(queryWrapper);
+                }
+                if (video != null && video.getStatus().equals(status)) {
+                    filteredList.add(vid);
+                }
+            }
+            list = filteredList;
+        }
+        
+        if (list.isEmpty()) {
             map.put("count", 0);
             map.put("list", Collections.emptyList());
             customResponse.setData(map);
             return customResponse;
         }
-        List<Integer> list = new ArrayList<>();
-        set.forEach(vid -> {
-            list.add((Integer) vid);
-        });
-        map.put("count", set.size());
+        
+        map.put("count", list.size());
         switch (rule) {
             case 1:
                 map.put("list", videoService.getVideosWithDataByIdsOrderByDesc(list, "upload_date", page, quantity));

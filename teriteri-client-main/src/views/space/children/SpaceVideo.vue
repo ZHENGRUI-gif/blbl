@@ -2,6 +2,25 @@
     <div class="space-video">
         <h3 class="page-head">
             <span class="t">{{ this.$store.state.user.uid === uid ? '我' : 'TA' }}的视频</span>
+            <!-- 审核状态筛选 -->
+            <div class="status-filter" v-if="this.$store.state.user.uid === uid">
+                <ul class="status-tab-inner">
+                    <li class="status-tab-item" :class="{'active': statusFilter === 'all'}" @click="changeStatusFilter('all')">
+                        <span>全部</span>
+                    </li>
+                    <li class="status-tab-item" :class="{'active': statusFilter === 'approved'}" @click="changeStatusFilter('approved')">
+                        <span>已通过</span>
+                    </li>
+                    <li class="status-tab-item" :class="{'active': statusFilter === 'pending'}" @click="changeStatusFilter('pending')">
+                        <span>审核中</span>
+                    </li>
+                    <li class="status-tab-item" :class="{'active': statusFilter === 'rejected'}" @click="changeStatusFilter('rejected')">
+                        <span>未通过</span>
+                    </li>
+                </ul>
+                <div class="status-tab-cursor" :style="`transform: translateX(${80 * getStatusFilterIndex()}px); width: 60px;`"></div>
+            </div>
+            <!-- 排序方式 -->
             <div class="be-tab" v-if="videoCount > 1">
                 <ul class="be-tab-inner">
                     <li class="be-tab-item" :class="{'active': rule === 1}" @click="rule = 1">
@@ -94,6 +113,7 @@ export default {
             videoCount: 0,  // 用户视频投稿数量
             page: 1,    // 当前页码
             type: 1,    // 展示方式
+            statusFilter: 'all',  // 审核状态筛选：all-全部, approved-已通过, pending-审核中, rejected-未通过
         }
     },
     computed: {
@@ -110,13 +130,41 @@ export default {
                     uid: this.uid,
                     rule: this.rule,
                     page: this.page,
-                    quantity: 30
+                    quantity: 30,
+                    status: this.getStatusValue()  // 添加状态筛选参数
                 }
             });
             if (!res.data) return;
             this.videoCount = res.data.data.count;
             this.videoList = res.data.data.list;
-            // console.log(this.videoList)
+        },
+
+        // 获取状态筛选对应的数值
+        getStatusValue() {
+            switch (this.statusFilter) {
+                case 'approved': return 1;  // 已通过
+                case 'pending': return 0;   // 审核中
+                case 'rejected': return 2;  // 未通过
+                default: return null;       // 全部
+            }
+        },
+
+        // 状态筛选切换
+        changeStatusFilter(status) {
+            this.statusFilter = status;
+            this.page = 1;  // 重置页码
+            this.getVideoList();
+        },
+
+        // 获取状态筛选索引（用于光标位置计算）
+        getStatusFilterIndex() {
+            switch (this.statusFilter) {
+                case 'all': return 0;
+                case 'approved': return 1;
+                case 'pending': return 2;
+                case 'rejected': return 3;
+                default: return 0;
+            }
         },
 
         // 换页
@@ -235,6 +283,49 @@ ol, ul {
     border-top: 0;
     border-left: 3px solid transparent;
     border-right: 3px solid transparent;
+}
+
+/* 状态筛选样式 */
+.status-filter {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.status-tab-inner {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+}
+
+.status-tab-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    transition: color .3s;
+    position: relative;
+    z-index: 2;
+}
+
+.status-tab-item:hover {
+    color: #00aeec;
+}
+
+.status-tab-item.active {
+    color: #00aeec;
+    font-weight: 500;
+}
+
+.status-tab-cursor {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: #00aeec;
+    transition: transform .3s;
+    z-index: 1;
 }
 
 .page-head__right {
