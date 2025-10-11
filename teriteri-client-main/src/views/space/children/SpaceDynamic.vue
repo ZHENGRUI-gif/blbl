@@ -91,15 +91,15 @@
                         <div class="dynamic-footer">
                             <div class="interaction-stats">
                                 <span class="stat-item">
-                                    <i class="icon-like"></i>
+                                    <i class="iconfont icon-dianzan"></i>
                                     {{ formatNumber(item.likeCount) }}
                                 </span>
                                 <span class="stat-item">
-                                    <i class="icon-comment"></i>
+                                    <i class="iconfont icon-pinglun"></i>
                                     {{ item.commentCount }}
                                 </span>
                                 <span class="stat-item">
-                                    <i class="icon-share"></i>
+                                    <i class="iconfont icon-zhuanfa"></i>
                                     {{ item.shareCount }}
                                 </span>
                             </div>
@@ -604,7 +604,22 @@ export default {
 
 /* 图标样式 */
 .icon-play::before { content: '▶'; }
-.icon-comment::before { content: '💬'; }
-.icon-like::before { content: '👍'; }
-.icon-share::before { content: '📤'; }
+
+/* 互动统计图标样式 */
+.interaction-stats .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #666;
+    font-size: 13px;
+}
+
+.interaction-stats .stat-item .iconfont {
+    font-size: 16px;
+    color: #999;
+}
+
+.interaction-stats .stat-item:hover .iconfont {
+    color: var(--brand_pink);
+}
 </style>

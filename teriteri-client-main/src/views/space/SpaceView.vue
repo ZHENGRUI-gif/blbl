@@ -11,7 +11,7 @@
                             <span class="f-txt">该账号封禁中</span>
                         </div>
                     </div>
-                    <div class="h-inner" :style="`background-image: url('${user.bg_url}');`">
+                    <div class="h-inner">
                         <div class="h-gradient"></div>
                         <div class="h-user">
                             <div class="h-info">
@@ -226,6 +226,33 @@ export default {
                 return;
             }
             this.user = res.data.data;
+            console.log('用户背景图URL:', this.user.bg_url);
+            console.log('是否使用自定义背景:', !!this.user.bg_url);
+            
+            // 测试背景图是否可以加载
+            if (this.user.bg_url) {
+                this.testBackgroundImage(this.user.bg_url);
+            }
+        },
+
+        // 测试背景图是否可以加载
+        testBackgroundImage(url) {
+            const img = new Image();
+            img.onload = () => {
+                console.log('背景图加载成功:', url);
+            };
+            img.onerror = () => {
+                console.log('背景图加载失败，使用默认背景图:', url);
+                // 清除用户背景图URL，使用默认背景图
+                this.user.bg_url = null;
+            };
+            img.src = url;
+        },
+
+        // 处理背景图加载错误
+        handleBackgroundError() {
+            console.log('背景图加载错误，切换到默认背景图');
+            this.user.bg_url = null;
         },
 
         // 获取用户的收藏夹列表
