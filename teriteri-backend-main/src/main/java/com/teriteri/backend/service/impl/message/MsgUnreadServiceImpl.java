@@ -59,7 +59,9 @@ public class MsgUnreadServiceImpl implements MsgUnreadService {
     @Override
     public void clearUnread(Integer uid, String column) {
         QueryWrapper<MsgUnread> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("uid", uid).ne(column, 0);
+        queryWrapper.eq("uid", uid);
+        // 使用apply方法处理保留关键字
+        queryWrapper.apply("`" + column + "` <> 0");
         MsgUnread msgUnread = msgUnreadMapper.selectOne(queryWrapper);
         // 如果本身就是0条未读就没必要执行下面的操作了 不过如果有未读的话做这个查询就会带来额外的开销
         if (msgUnread == null) return;
@@ -75,7 +77,9 @@ public class MsgUnreadServiceImpl implements MsgUnreadService {
         }
 
         UpdateWrapper<MsgUnread> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("uid", uid).set(column, 0);
+        updateWrapper.eq("uid", uid);
+        // 使用setSql方法处理保留关键字
+        updateWrapper.setSql("`" + column + "` = 0");
         msgUnreadMapper.update(null, updateWrapper);
         redisUtil.delValue("msg_unread:" + uid);
         if (Objects.equals(column, "whisper")) {

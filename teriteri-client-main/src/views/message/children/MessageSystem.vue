@@ -71,10 +71,23 @@ export default {
             return this.$store.state.user.uid;
         }
     },
-    mounted() {
-        this.loadSystemMessages();
+    async mounted() {
+        await this.clearUnread();
+        await this.loadSystemMessages();
     },
     methods: {
+        async clearUnread() {
+            try {
+                const formData = new FormData();
+                formData.append("column", "system");
+                await this.$post("/msg-unread/clear", formData, {
+                    headers: { Authorization: "Bearer " + localStorage.getItem("teri_token") }
+                });
+            } catch (error) {
+                console.error('清除系统消息未读数失败:', error);
+            }
+        },
+        
         async loadSystemMessages() {
             this.loading = true;
             try {
