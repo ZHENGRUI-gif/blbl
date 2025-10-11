@@ -2,6 +2,7 @@ package com.teriteri.backend.service.impl.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.teriteri.backend.mapper.FollowMapper;
 import com.teriteri.backend.mapper.UserMapper;
 import com.teriteri.backend.pojo.CustomResponse;
 import com.teriteri.backend.pojo.User;
@@ -37,6 +38,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private VideoStatsService videoStatsService;
+
+    @Autowired
+    private FollowMapper followMapper;
 
     @Autowired
     private RedisUtil redisUtil;
@@ -104,8 +108,17 @@ public class UserServiceImpl implements UserService {
         userDTO.setVip(user.getVip());
         userDTO.setAuth(user.getAuth());
         userDTO.setAuthMsg(user.getAuthMsg());
-        userDTO.setFollowsCount(0);
-        userDTO.setFansCount(0);
+        // 实时计算关注数和粉丝数
+        try {
+            int followsCount = followMapper.getFollowCount(user.getUid());
+            int fansCount = followMapper.getFansCount(user.getUid());
+            userDTO.setFollowsCount(followsCount);
+            userDTO.setFansCount(fansCount);
+        } catch (Exception e) {
+            log.error("获取关注数和粉丝数失败: uid={}", user.getUid(), e);
+            userDTO.setFollowsCount(0);
+            userDTO.setFansCount(0);
+        }
         Set<Object> set = redisUtil.zReverange("user_video_upload:" + user.getUid(), 0L, -1L);
         if (set == null || set.size() == 0) {
             userDTO.setVideoCount(0);

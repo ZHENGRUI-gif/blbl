@@ -166,14 +166,18 @@
                                     <div class="up-description" :title="user.description">{{ user.description }}</div>
                                 </div>
                                 <div class="up-info__btn-panel">
-                                    <div class="default-btn follow-btn not-follow" v-if="true" @click="noPage">
+                                    <!-- 未关注状态 -->
+                                    <div class="default-btn follow-btn not-follow" 
+                                         v-if="!isFollowing && user.uid !== this.$store.state.user.uid" 
+                                         @click="toggleFollow">
                                         <i class="iconfont icon-jia"></i>
                                         关注 {{ handleNum(user.fansCount) }}
                                     </div>
-                                    <VPopover popStyle="padding-top: 10px;">
-
+                                    
+                                    <!-- 已关注状态 -->
+                                    <VPopover popStyle="padding-top: 10px;" v-if="isFollowing && user.uid !== this.$store.state.user.uid">
                                         <template #reference>
-                                            <div class="default-btn follow-btn following" v-if="false">
+                                            <div class="default-btn follow-btn following">
                                                 <i class="iconfont icon-caidan"></i>
                                                 已关注 {{ handleNum(user.fansCount) }}
                                             </div>
@@ -184,27 +188,7 @@
                                                 <div class="dropdown-item">
                                                     <span>设置分组</span>
                                                 </div>
-                                                <div class="dropdown-item">
-                                                    <span>取消关注</span>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </VPopover>
-                                    <VPopover popStyle="padding-top: 10px;">
-
-                                        <template #reference>
-                                            <div class="default-btn follow-btn following" v-if="false">
-                                                <i class="iconfont icon-caidan"></i>
-                                                已互粉 {{ handleNum(user.fansCount) }}
-                                            </div>
-                                        </template>
-
-                                        <template #content>
-                                            <div class="following-dropdown">
-                                                <div class="dropdown-item">
-                                                    <span>设置分组</span>
-                                                </div>
-                                                <div class="dropdown-item">
+                                                <div class="dropdown-item" @click="toggleFollow">
                                                     <span>取消关注</span>
                                                 </div>
                                             </div>
@@ -408,6 +392,7 @@ export default {
             collectedFids: new Set(),   // 收藏了该视频的收藏夹ID集合
             isMounted: false,
             loveLoading: false, // 点赞防抖
+            isFollowing: false,  // 是否已关注该用户
         }
     },
     methods: {
@@ -440,6 +425,7 @@ export default {
             this.isDescTooLong();
             if (localStorage.getItem("teri_token")) {
                 this.getCollectedFids();
+                this.checkFollowStatus();
             }
             return true;
         },
@@ -728,6 +714,64 @@ export default {
             this.collectedFids = info.fids;
             this.collect += info.num;
             this.collectVisible = false;
+        },
+
+        // 检查关注状态
+        async checkFollowStatus() {
+            if (!this.$store.state.user.uid || this.user.uid === this.$store.state.user.uid) {
+                return;
+            }
+            
+            try {
+                const res = await this.$get("/follow/check", {
+                    params: { followingId: this.user.uid },
+                    headers: { Authorization: "Bearer " + localStorage.getItem("teri_token") }
+                });
+                
+                if (res.data && res.data.code === 200) {
+                    this.isFollowing = res.data.data;
+                }
+            } catch (error) {
+                console.error("检查关注状态失败:", error);
+            }
+        },
+
+        // 切换关注状态
+        async toggleFollow() {
+            if (!this.$store.state.user.uid) {
+                this.$store.state.openLogin = true;
+                this.$nextTick(() => {
+                    this.$store.state.openLogin = false;
+                });
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('followingId', this.user.uid);
+                
+                const res = await this.$post("/follow/toggle", 
+                    formData,
+                    { headers: { Authorization: "Bearer " + localStorage.getItem("teri_token") } }
+                );
+                
+                if (res.data && res.data.code === 200) {
+                    this.isFollowing = res.data.data;
+                    ElMessage.success(res.data.message);
+                    
+                    // 更新用户信息中的粉丝数
+                    if (this.isFollowing) {
+                        this.user.fansCount = (this.user.fansCount || 0) + 1;
+                    } else {
+                        this.user.fansCount = Math.max((this.user.fansCount || 0) - 1, 0);
+                    }
+                } else {
+                    ElMessage.error(res.data?.message || "操作失败");
+                }
+            } catch (error) {
+                console.error("关注操作失败:", error);
+                ElMessage.error("操作失败，请稍后重试");
+            }
         },
 
         noPage() {
