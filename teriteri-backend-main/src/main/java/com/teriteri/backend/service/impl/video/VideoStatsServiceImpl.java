@@ -58,10 +58,10 @@ public class VideoStatsServiceImpl implements VideoStatsService {
         UpdateWrapper<VideoStats> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("vid", vid);
         if (increase) {
-            updateWrapper.setSql(column + " = " + column + " + " + count);
+            updateWrapper.setSql("`" + column + "` = `" + column + "` + " + count);
         } else {
             // 更新后的字段不能小于0
-            updateWrapper.setSql(column + " = CASE WHEN " + column + " - " + count + " < 0 THEN 0 ELSE " + column + " - " + count + " END");
+            updateWrapper.setSql("`" + column + "` = CASE WHEN `" + column + "` - " + count + " < 0 THEN 0 ELSE `" + column + "` - " + count + " END");
         }
         videoStatsMapper.update(null, updateWrapper);
         redisUtil.delValue("videoStats:" + vid);

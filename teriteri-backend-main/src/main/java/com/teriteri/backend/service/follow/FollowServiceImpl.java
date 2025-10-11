@@ -6,6 +6,7 @@ import com.teriteri.backend.pojo.Follow;
 import com.teriteri.backend.pojo.User;
 import com.teriteri.backend.pojo.dto.UserDTO;
 import com.teriteri.backend.service.user.UserService;
+import com.teriteri.backend.service.message.MsgUnreadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,9 @@ public class FollowServiceImpl implements FollowService {
     
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private MsgUnreadService msgUnreadService;
     
     @Override
     @Transactional
@@ -44,6 +48,9 @@ public class FollowServiceImpl implements FollowService {
             return response;
         }
         
+        // 获取关注者信息用于通知
+        UserDTO followerUser = userService.getUserById(followerId);
+        
         // 检查是否已有关注关系
         Follow existingFollow = followMapper.findByFollowerAndFollowing(followerId, followingId);
         
@@ -61,6 +68,9 @@ public class FollowServiceImpl implements FollowService {
             userService.updateFollowCount(followerId, 1);
             userService.updateFansCount(followingId, 1);
             
+            // 发送系统通知给被关注者
+            msgUnreadService.addOneUnread(followingId, "system");
+            
             response.setCode(200);
             response.setMessage("关注成功");
             response.setData(true); // true表示已关注
@@ -76,6 +86,9 @@ public class FollowServiceImpl implements FollowService {
                 userService.updateFollowCount(followerId, -1);
                 userService.updateFansCount(followingId, -1);
                 
+                // 发送系统通知给被关注者
+                msgUnreadService.addOneUnread(followingId, "system");
+                
                 response.setCode(200);
                 response.setMessage("取消关注成功");
                 response.setData(false); // false表示未关注
@@ -88,6 +101,9 @@ public class FollowServiceImpl implements FollowService {
                 // 更新用户关注数和粉丝数
                 userService.updateFollowCount(followerId, 1);
                 userService.updateFansCount(followingId, 1);
+                
+                // 发送系统通知给被关注者
+                msgUnreadService.addOneUnread(followingId, "system");
                 
                 response.setCode(200);
                 response.setMessage("关注成功");

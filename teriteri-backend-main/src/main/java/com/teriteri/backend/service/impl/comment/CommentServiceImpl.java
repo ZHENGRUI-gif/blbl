@@ -322,10 +322,10 @@ public class CommentServiceImpl implements CommentService {
         UpdateWrapper<Comment> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("id", id);
         if (increase) {
-            updateWrapper.setSql(column + " = " + column + " + " + count);
+            updateWrapper.setSql("`" + column + "` = `" + column + "` + " + count);
         } else {
             // 更新后的字段不能小于0
-            updateWrapper.setSql(column + " = CASE WHEN " + column + " - " + count + " < 0 THEN 0 ELSE " + column + " - " + count + " END");
+            updateWrapper.setSql("`" + column + "` = CASE WHEN `" + column + "` - " + count + " < 0 THEN 0 ELSE `" + column + "` - " + count + " END");
         }
         commentMapper.update(null, updateWrapper);
     }

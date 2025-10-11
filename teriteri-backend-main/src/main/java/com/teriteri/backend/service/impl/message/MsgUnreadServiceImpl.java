@@ -46,7 +46,7 @@ public class MsgUnreadServiceImpl implements MsgUnreadService {
     @Override
     public void addOneUnread(Integer uid, String column) {
         UpdateWrapper<MsgUnread> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("uid", uid).setSql(column + " = " + column + " + 1");
+        updateWrapper.eq("uid", uid).setSql("`" + column + "` = `" + column + "` + 1");
         msgUnreadMapper.update(null, updateWrapper);
         redisUtil.delValue("msg_unread:" + uid);
     }
