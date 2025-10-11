@@ -35,7 +35,11 @@
                             </div>
                         </div>
                         <div class="h-action" v-if="user.uid !== this.$store.state.user.uid">
-                            <div class="h-f-btn h-follow" @click="noPage">关注</div>
+                            <div class="h-f-btn h-follow" 
+                                 :class="{ 'followed': isFollowing }" 
+                                 @click="toggleFollow">
+                                {{ isFollowing ? '取消关注' : '关注' }}
+                            </div>
                             <div class="h-f-btn h-message" @click="createChat">发消息</div>
                             <div class="be-dropdown h-add-to-black">
                                 <i class="iconfont icon-gengduo"></i>
@@ -171,6 +175,7 @@ export default {
             themeShow: false,   // 是否展开更换头图的抽屉
             hoverIdx: -1,   // 悬停导航栏
             mounted: false,
+            isFollowing: false,  // 是否已关注该用户
         }
     },
     computed: {
@@ -233,6 +238,9 @@ export default {
             if (this.user.bg_url) {
                 this.testBackgroundImage(this.user.bg_url);
             }
+            
+            // 检查关注状态
+            this.checkFollowStatus();
         },
 
         // 测试背景图是否可以加载
@@ -296,6 +304,64 @@ export default {
                 return;
             }
             this.openNewPage(`/message/whisper/${this.user.uid}`);
+        },
+
+        // 检查关注状态
+        async checkFollowStatus() {
+            if (!this.$store.state.user.uid || this.user.uid === this.$store.state.user.uid) {
+                return;
+            }
+            
+            try {
+                const res = await this.$get("/follow/check", {
+                    params: { followingId: this.user.uid },
+                    headers: { Authorization: "Bearer " + localStorage.getItem("teri_token") }
+                });
+                
+                if (res.data && res.data.code === 200) {
+                    this.isFollowing = res.data.data;
+                }
+            } catch (error) {
+                console.error("检查关注状态失败:", error);
+            }
+        },
+
+        // 切换关注状态
+        async toggleFollow() {
+            if (!this.$store.state.user.uid) {
+                this.$store.state.openLogin = true;
+                this.$nextTick(() => {
+                    this.$store.state.openLogin = false;
+                });
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('followingId', this.user.uid);
+                
+                const res = await this.$post("/follow/toggle", 
+                    formData,
+                    { headers: { Authorization: "Bearer " + localStorage.getItem("teri_token") } }
+                );
+                
+                if (res.data && res.data.code === 200) {
+                    this.isFollowing = res.data.data;
+                    ElMessage.success(res.data.message);
+                    
+                    // 更新用户信息中的粉丝数
+                    if (this.isFollowing) {
+                        this.user.fansCount = (this.user.fansCount || 0) + 1;
+                    } else {
+                        this.user.fansCount = Math.max((this.user.fansCount || 0) - 1, 0);
+                    }
+                } else {
+                    ElMessage.error(res.data?.message || "操作失败");
+                }
+            } catch (error) {
+                console.error("关注操作失败:", error);
+                ElMessage.error("操作失败，请稍后重试");
+            }
         },
 
         // 打开新标签页
@@ -637,10 +703,20 @@ export default {
     background: #f25d8e;
     box-shadow: 0 0 0 2px #fff;
     color: #fff;
+    transition: all 0.3s ease;
 }
 
 .h-follow:hover {
     background: #ff85ad;
+}
+
+.h-follow.followed {
+    background: #e5e9ef;
+    color: #666;
+}
+
+.h-follow.followed:hover {
+    background: #d0d6db;
 }
 
 .h-add-to-black {

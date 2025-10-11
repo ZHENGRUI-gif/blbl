@@ -245,4 +245,18 @@ public class UserServiceImpl implements UserService {
         }, taskExecutor);
         return new CustomResponse(200, "OK", avatar_url);
     }
+
+    @Override
+    public void updateFollowCount(Integer uid, int delta) {
+        // 由于user表中没有follows_count字段，关注数通过查询follow表计算
+        // 这里暂时不执行任何操作，关注数会在查询时实时计算
+        log.info("关注数变化: uid={}, delta={}", uid, delta);
+    }
+
+    @Override
+    public void updateFansCount(Integer uid, int delta) {
+        // 由于user表中没有fans_count字段，粉丝数通过查询follow表计算
+        // 这里暂时不执行任何操作，粉丝数会在查询时实时计算
+        log.info("粉丝数变化: uid={}, delta={}", uid, delta);
+    }
 }

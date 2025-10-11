@@ -39,4 +39,18 @@ public interface UserService {
      * @return
      */
     CustomResponse updateUserAvatar(Integer uid, MultipartFile file) throws IOException;
+
+    /**
+     * 更新用户关注数
+     * @param uid 用户ID
+     * @param delta 变化量（正数增加，负数减少）
+     */
+    void updateFollowCount(Integer uid, int delta);
+
+    /**
+     * 更新用户粉丝数
+     * @param uid 用户ID
+     * @param delta 变化量（正数增加，负数减少）
+     */
+    void updateFansCount(Integer uid, int delta);
 }
