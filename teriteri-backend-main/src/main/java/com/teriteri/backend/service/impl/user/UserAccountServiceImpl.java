@@ -159,6 +159,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                 0,
                 0,
                 null,
+                null, // location字段
                 now,
                 null
         );
@@ -237,6 +238,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         userDTO.setState(user.getState());
         userDTO.setAuth(user.getAuth());
         userDTO.setAuthMsg(user.getAuthMsg());
+        userDTO.setLocation(user.getLocation());
 
         Map<String, Object> final_map = new HashMap<>();
         final_map.put("token", token);
@@ -296,6 +298,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         userDTO.setState(user.getState());
         userDTO.setAuth(user.getAuth());
         userDTO.setAuthMsg(user.getAuthMsg());
+        userDTO.setLocation(user.getLocation());
 
         Map<String, Object> final_map = new HashMap<>();
         final_map.put("token", token);
@@ -380,6 +383,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         userDTO.setState(user.getState());
         userDTO.setAuth(user.getAuth());
         userDTO.setAuthMsg(user.getAuthMsg());
+        userDTO.setLocation(user.getLocation());
         customResponse.setData(userDTO);
         return customResponse;
     }

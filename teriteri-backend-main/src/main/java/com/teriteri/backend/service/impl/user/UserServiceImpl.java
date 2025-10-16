@@ -108,6 +108,7 @@ public class UserServiceImpl implements UserService {
         userDTO.setVip(user.getVip());
         userDTO.setAuth(user.getAuth());
         userDTO.setAuthMsg(user.getAuthMsg());
+        userDTO.setLocation(user.getLocation());
         // 实时计算关注数和粉丝数
         try {
             int followsCount = followMapper.getFollowCount(user.getUid());
