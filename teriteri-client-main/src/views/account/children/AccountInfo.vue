@@ -33,6 +33,12 @@
                     </div>
                 </div>
             </div>
+            <div class="form-item user-location">
+                <label class="form-item__label">所在地:</label>
+                <div class="form-item__content">
+                    <el-input type="text" placeholder="请输入您的所在地" v-model="location" maxlength="100" />
+                </div>
+            </div>
             <div class="form-item submit-btn">
                 <div class="form-item__content">
                     <div class="padding-dom"></div>
@@ -56,6 +62,7 @@ export default {
             nickname: "",
             description: "",
             gender: 2,
+            location: "",
             isLoading: false,
         }
     },
@@ -63,7 +70,8 @@ export default {
         hadChanged() {
             return this.nickname !== this.$store.state.user.nickname ||
                     this.description !== this.$store.state.user.description ||
-                    this.gender !== this.$store.state.user.gender;
+                    this.gender !== this.$store.state.user.gender ||
+                    this.location !== (this.$store.state.user.location || '');
         }
     },
     methods: {
@@ -83,6 +91,9 @@ export default {
             formData.append("nickname", this.nickname);
             formData.append("description", this.description);
             formData.append("gender", this.gender);
+            if (this.location) {
+                formData.append("location", this.location);
+            }
             const res = await this.$post("/user/info/update", formData, {
                 headers: { Authorization: "Bearer " + localStorage.getItem("teri_token") }
             });
@@ -93,6 +104,7 @@ export default {
             this.$store.state.user.nickname = this.nickname;
             this.$store.state.user.description = this.description;
             this.$store.state.user.gender = this.gender;
+            this.$store.state.user.location = this.location;
             this.isLoading = false;
             ElMessage.success("信息更新成功")
         },
@@ -106,6 +118,7 @@ export default {
             this.nickname = this.$store.state.user.nickname;
             this.description = this.$store.state.user.description;
             this.gender = this.$store.state.user.gender;
+            this.location = this.$store.state.user.location || '';
         }
     }
 }
@@ -230,6 +243,20 @@ export default {
     background-color: #FF7DA1;
     border-color: #FF7DA1;
     color: #fff;
+}
+
+.user-location {
+    margin-top: 20px;
+}
+
+.user-location .el-input {
+    float: left;
+    width: 618px;
+    height: 30px;
+}
+
+.user-location /deep/ .el-input__wrapper {
+    padding: 0px 15px;
 }
 
 .padding-dom {

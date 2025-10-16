@@ -29,6 +29,7 @@ public class User {
     private Integer role;   // 0 普通用户，1 普通管理员，2 超级管理员
     private Integer auth;   // 0 普通用户，1 个人认证，2 机构认证
     private String authMsg; // 认证信息，如 teriteri官方账号
+    private String location; // 用户所在地
 //    @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone = "Asia/Shanghai")
     private Date createDate;
 //    @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone = "Asia/Shanghai")

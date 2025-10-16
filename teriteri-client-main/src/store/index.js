@@ -12,7 +12,13 @@ export default createStore({
         // 是否外部触发打开登录框
         openLogin: false,
         // 当前用户
-        user: {},
+        user: {
+            uid: null,
+            username: "",
+            nickname: "",
+            avatar: "",
+            location: "", // 用户所在地
+        },
         // 分区列表
         channels: [],
         // 轮播图列表

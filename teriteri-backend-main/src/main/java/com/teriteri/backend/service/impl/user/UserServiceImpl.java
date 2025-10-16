@@ -197,7 +197,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public CustomResponse updateUserInfo(Integer uid, String nickname, String desc, Integer gender) throws IOException {
+    public CustomResponse updateUserInfo(Integer uid, String nickname, String desc, Integer gender, String location) throws IOException {
         CustomResponse customResponse = new CustomResponse();
         if (nickname == null || nickname.trim().length() == 0) {
             customResponse.setCode(500);
@@ -207,6 +207,11 @@ public class UserServiceImpl implements UserService {
         if (nickname.length() > 24 || desc.length() > 100) {
             customResponse.setCode(500);
             customResponse.setMessage("输入字符过长");
+            return customResponse;
+        }
+        if (location != null && location.length() > 100) {
+            customResponse.setCode(500);
+            customResponse.setMessage("所在地信息过长");
             return customResponse;
         }
         if (Objects.equals(nickname, "账号已注销")) {
@@ -228,6 +233,9 @@ public class UserServiceImpl implements UserService {
                 .set("nickname", nickname)
                 .set("description", desc)
                 .set("gender", gender);
+        if (location != null) {
+            updateWrapper.set("location", location);
+        }
         userMapper.update(null, updateWrapper);
         User new_user = new User();
         new_user.setUid(uid);

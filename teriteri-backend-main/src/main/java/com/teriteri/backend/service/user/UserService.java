@@ -28,9 +28,10 @@ public interface UserService {
      * @param nickname  昵称
      * @param desc  个性签名
      * @param gender    性别： 0 女 1 男 2 双性人
+     * @param location  所在地
      * @return  响应对象
      */
-    CustomResponse updateUserInfo(Integer uid, String nickname, String desc, Integer gender) throws IOException;
+    CustomResponse updateUserInfo(Integer uid, String nickname, String desc, Integer gender, String location) throws IOException;
 
     /**
      * 更新用户头像

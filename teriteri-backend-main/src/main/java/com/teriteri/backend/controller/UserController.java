@@ -23,15 +23,17 @@ public class UserController {
      * @param nickname  昵称
      * @param desc  个性签名
      * @param gender    性别：0 女 1 男 2 保密
+     * @param location  所在地
      * @return
      */
     @PostMapping("/user/info/update")
     public CustomResponse updateUserInfo(@RequestParam("nickname") String nickname,
                                          @RequestParam("description") String desc,
-                                         @RequestParam("gender") Integer gender) {
+                                         @RequestParam("gender") Integer gender,
+                                         @RequestParam(value = "location", required = false) String location) {
         Integer uid = currentUser.getUserId();
         try {
-            return userService.updateUserInfo(uid, nickname, desc, gender);
+            return userService.updateUserInfo(uid, nickname, desc, gender, location);
         } catch (Exception e) {
             e.printStackTrace();
             CustomResponse customResponse = new CustomResponse();
