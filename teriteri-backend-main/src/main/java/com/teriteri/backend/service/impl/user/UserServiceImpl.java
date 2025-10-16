@@ -170,6 +170,7 @@ public class UserServiceImpl implements UserService {
                             user.getState(),
                             user.getAuth(),
                             user.getAuthMsg(),
+                            user.getLocation(),
                             0,0,0,0,0
                     );
                     Set<Object> set = redisUtil.zReverange("user_video_upload:" + user.getUid(), 0L, -1L);
