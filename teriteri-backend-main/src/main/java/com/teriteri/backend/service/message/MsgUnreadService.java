@@ -1,6 +1,9 @@
 package com.teriteri.backend.service.message;
 
+import com.teriteri.backend.pojo.CommentTree;
 import com.teriteri.backend.pojo.MsgUnread;
+
+import java.util.List;
 
 public interface MsgUnreadService {
 
@@ -31,4 +34,13 @@ public interface MsgUnreadService {
      * @return  MsgUnread对象
      */
     MsgUnread getUnread(Integer uid);
+
+    /**
+     * 获取用户收到的评论消息
+     * @param uid 用户ID
+     * @param offset 分页偏移量
+     * @param count 获取数量
+     * @return 评论树列表
+     */
+    List<CommentTree> getUserReceivedComments(Integer uid, Long offset, Integer count);
 }

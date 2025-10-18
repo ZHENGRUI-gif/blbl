@@ -15,6 +15,7 @@ import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +44,7 @@ public class CommentServiceImpl implements CommentService {
     private UserService userService;
 
     @Autowired
+    @Lazy
     private MsgUnreadService msgUnreadService;
 
     @Autowired
@@ -146,6 +148,7 @@ public class CommentServiceImpl implements CommentService {
 
         try {
             CompletableFuture.runAsync(() -> {
+                System.out.println("开始异步执行评论存储逻辑，评论ID: " + comment.getId());
                 // 如果不是根级评论，则加入 redis 对应的 zset 中
                 if (!rootId.equals(0)) {
                     redisUtil.zset("comment_reply:" + rootId, comment.getId());
@@ -168,6 +171,28 @@ public class CommentServiceImpl implements CommentService {
                         }
                     }
                 }
+
+                // 获取视频发布者ID - 无论根评论还是回复评论，都要通知视频发布者
+                Video video = videoMapper.selectById(vid);
+                if (video != null && !Objects.equals(video.getUid(), comment.getUid())) {
+                    // 如果评论不是视频发布者自己发的，给视频发布者增加未读评论消息
+                    // 对于视频发布者，我们存储根评论的ID，这样他就能看到整个评论树
+                    Integer rootCommentId = comment.getRootId() == 0 ? comment.getId() : comment.getRootId();
+                    System.out.println("给视频发布者 " + video.getUid() + " 存储评论ID " + rootCommentId + " (原始评论ID: " + comment.getId() + ", 是否根评论: " + (comment.getRootId() == 0) + ")");
+                    redisUtil.zset("comment_video_owner:" + video.getUid(), rootCommentId);
+                    msgUnreadService.addOneUnread(video.getUid(), "reply");
+
+                    // netty 通知视频发布者收到评论消息
+                    Map<String, Object> ownerMap = new HashMap<>();
+                    ownerMap.put("type", "视频评论");
+                    Set<Channel> ownerChannels = IMServer.userChannel.get(video.getUid());
+                    if (ownerChannels != null) {
+                        for (Channel channel: ownerChannels) {
+                            channel.writeAndFlush(IMResponse.message("reply", ownerMap));
+                        }
+                    }
+                }
+                System.out.println("异步评论存储逻辑执行完成，评论ID: " + comment.getId());
             }, taskExecutor);
         } catch (Exception e) {
             log.error("发送评论过程中出现一点差错");

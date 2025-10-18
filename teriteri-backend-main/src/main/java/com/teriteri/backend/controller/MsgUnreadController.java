@@ -1,5 +1,6 @@
 package com.teriteri.backend.controller;
 
+import com.teriteri.backend.pojo.CommentTree;
 import com.teriteri.backend.pojo.CustomResponse;
 import com.teriteri.backend.service.message.MsgUnreadService;
 import com.teriteri.backend.service.utils.CurrentUser;
@@ -8,6 +9,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 public class MsgUnreadController {
@@ -37,5 +42,27 @@ public class MsgUnreadController {
     public void clearUnread(@RequestParam("column") String column) {
         Integer uid = currentUser.getUserId();
         msgUnreadService.clearUnread(uid, column);
+    }
+
+    /**
+     * 获取用户收到的评论消息
+     * @param offset 分页偏移量
+     * @param count 获取数量，默认10条
+     * @return 评论消息列表
+     */
+    @GetMapping("/msg-unread/reply-comments")
+    public CustomResponse getUserReceivedComments(@RequestParam(value = "offset", defaultValue = "0") Long offset,
+                                                 @RequestParam(value = "count", defaultValue = "10") Integer count) {
+        Integer uid = currentUser.getUserId();
+        CustomResponse customResponse = new CustomResponse();
+
+        List<CommentTree> comments = msgUnreadService.getUserReceivedComments(uid, offset, count);
+        Map<String, Object> data = new HashMap<>();
+        data.put("comments", comments);
+        data.put("offset", offset);
+        data.put("count", count);
+
+        customResponse.setData(data);
+        return customResponse;
     }
 }
