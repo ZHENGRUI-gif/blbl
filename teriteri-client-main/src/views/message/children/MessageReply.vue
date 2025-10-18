@@ -30,7 +30,7 @@
 
                     <!-- 评论内容 -->
                     <div class="comment-content">
-                        <div class="comment-text">{{ comment.content }}</div>
+                        <div class="comment-text" v-html="emojiText(comment.content)"></div>
                     </div>
 
                     <!-- 视频信息 -->
@@ -65,7 +65,7 @@
                             </div>
                             <div class="reply-content">
                                 <span class="reply-to" v-if="reply.toUser">@{{ reply.toUser.nickname }} </span>
-                                <span class="reply-text">{{ reply.content }}</span>
+                                <span class="reply-text" v-html="emojiText(reply.content)"></span>
                             </div>
                         </div>
                     </div>
@@ -93,7 +93,7 @@
 
 <script>
 import VAvatar from '@/components/avatar/VAvatar.vue';
-import { handleNum, handleDateTime } from '@/utils/utils.js';
+import { handleNum, handleDateTime, emojiText } from '@/utils/utils.js';
 
 export default {
     name: "MessageReply",
@@ -179,7 +179,7 @@ export default {
                     }
                 });
                 if (res.data && res.data.data) {
-                    this.videoInfoCache[vid] = res.data.data.video;
+                    this.videoInfoCache[vid] = res.data.data;
                 }
             } catch (error) {
                 console.error('加载视频信息失败:', error);
@@ -188,17 +188,20 @@ export default {
 
         // 获取视频封面
         getVideoCover(vid) {
-            return this.videoInfoCache[vid]?.coverUrl || '';
+            const videoInfo = this.videoInfoCache[vid];
+            return videoInfo?.video?.coverUrl || '';
         },
 
         // 获取视频标题
         getVideoTitle(vid) {
-            return this.videoInfoCache[vid]?.title || '未知视频';
+            const videoInfo = this.videoInfoCache[vid];
+            return videoInfo?.video?.title || '未知视频';
         },
 
         // 获取视频时长
         getVideoDuration(vid) {
-            const duration = this.videoInfoCache[vid]?.duration;
+            const videoInfo = this.videoInfoCache[vid];
+            const duration = videoInfo?.video?.duration;
             if (!duration) return '00:00';
             const minutes = Math.floor(duration / 60);
             const seconds = Math.floor(duration % 60);
@@ -207,17 +210,21 @@ export default {
 
         // 获取视频统计信息
         getVideoStats(vid) {
-            const video = this.videoInfoCache[vid];
-            if (!video) return '';
-            // 从video对象的属性中获取统计信息
-            const playCount = video.play || 0;
-            const likeCount = video.good || 0;
+            const videoInfo = this.videoInfoCache[vid];
+            if (!videoInfo) return '';
+
+            const stats = videoInfo.stats || {};
+
+            // 从stats对象中获取统计信息
+            const playCount = stats.play || 0;
+            const likeCount = stats.like || 0;
+
             return `${handleNum(playCount)} 播放 · ${handleNum(likeCount)} 点赞`;
         },
 
         // 打开视频
         openVideo(vid) {
-            this.$router.push(`/detail/${vid}`);
+            this.$router.push(`/video/${vid}`);
         },
 
         // 加载更多
@@ -228,6 +235,11 @@ export default {
         // 处理时间显示
         handleDateTime(time) {
             return handleDateTime(time);
+        },
+
+        // 处理表情显示
+        emojiText(text) {
+            return emojiText(text);
         }
     },
     created() {
@@ -362,6 +374,19 @@ export default {
     color: #333;
     line-height: 1.5;
     word-break: break-word;
+}
+
+.comment-text .emotion-items {
+    display: inline-block;
+    margin: 0 2px;
+    vertical-align: middle;
+}
+
+.comment-text .img-emoji {
+    display: inline-block;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 /* 视频信息 */
@@ -550,6 +575,19 @@ export default {
 
 .reply-text {
     word-break: break-word;
+}
+
+.reply-text .emotion-items {
+    display: inline-block;
+    margin: 0 1px;
+    vertical-align: middle;
+}
+
+.reply-text .img-emoji {
+    display: inline-block;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 /* 空状态 */
