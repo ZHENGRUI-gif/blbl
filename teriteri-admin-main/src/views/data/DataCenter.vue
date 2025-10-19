@@ -150,6 +150,24 @@ export default {
         };
     },
 
+    watch: {
+        // 监听用户图表类型变化
+        userChartType(newType) {
+            console.log('用户图表类型切换到:', newType);
+            this.$nextTick(() => {
+                if (newType === 'gender') {
+                    this.initUserGenderChart();
+                } else if (newType === 'growth') {
+                    this.initUserGrowthChart();
+                } else if (newType === 'location') {
+                    this.initUserLocationChart();
+                } else if (newType === 'level') {
+                    this.initUserLevelChart();
+                }
+            });
+        }
+    },
+
     mounted() {
         this.loadOverviewData();
         this.loadPlatformData();
@@ -355,7 +373,13 @@ export default {
         // 用户性别分布饼图
         initUserGenderChart() {
             const chartDom = this.$refs.userGenderChart;
-            if (!chartDom) return;
+            console.log('初始化性别分布图表，DOM元素存在:', !!chartDom);
+            if (!chartDom) {
+                console.log('性别分布DOM元素不存在');
+                return;
+            }
+
+            console.log('性别分布数据:', this.userGenderData);
 
             const chart = echarts.init(chartDom);
             this.chartInstances.userGender = chart;
@@ -365,6 +389,8 @@ export default {
                 { name: '女性', value: this.userGenderData.female || 0 },
                 { name: '保密', value: this.userGenderData.unknown || 0 }
             ];
+
+            console.log('处理后的图表数据:', data);
 
             const option = {
                 title: {
@@ -386,7 +412,12 @@ export default {
                             shadowColor: 'rgba(0, 0, 0, 0.5)'
                         }
                     },
-                    colors: ['#3b82f6', '#ec4899', '#6b7280']
+                    itemStyle: {
+                        color: function(params) {
+                            const colors = ['#3b82f6', '#ec4899', '#6b7280'];
+                            return colors[params.dataIndex];
+                        }
+                    }
                 }]
             };
 
