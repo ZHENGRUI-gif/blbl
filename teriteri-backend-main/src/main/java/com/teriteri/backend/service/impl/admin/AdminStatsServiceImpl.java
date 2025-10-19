@@ -119,24 +119,50 @@ public class AdminStatsServiceImpl implements AdminStatsService {
     public Map<String, Object> getUserGenderDistribution() {
         Map<String, Object> result = new HashMap<>();
 
-        // 男性用户数
-        QueryWrapper<User> maleQuery = new QueryWrapper<>();
-        maleQuery.eq("gender", 1);
-        Long maleUsers = userMapper.selectCount(maleQuery);
+        try {
+            // 获取所有用户的总数
+            Long totalUsers = userMapper.selectCount(null);
 
-        // 女性用户数
-        QueryWrapper<User> femaleQuery = new QueryWrapper<>();
-        femaleQuery.eq("gender", 0);
-        Long femaleUsers = userMapper.selectCount(femaleQuery);
+            // 查询所有用户的gender分布
+            QueryWrapper<User> allUsersQuery = new QueryWrapper<>();
+            List<User> allUsers = userMapper.selectList(allUsersQuery);
 
-        // 无性别/保密用户数
-        QueryWrapper<User> unknownQuery = new QueryWrapper<>();
-        unknownQuery.in("gender", Arrays.asList(2, null));
-        Long unknownUsers = userMapper.selectCount(unknownQuery);
+            Map<Integer, Long> genderCount = new HashMap<>();
+            for (User user : allUsers) {
+                Integer gender = user.getGender();
+                genderCount.put(gender, genderCount.getOrDefault(gender, 0L) + 1);
+            }
 
-        result.put("male", maleUsers);
-        result.put("female", femaleUsers);
-        result.put("unknown", unknownUsers);
+            // 男性用户数 (gender = 1)
+            Long maleUsers = genderCount.getOrDefault(1, 0L);
+
+            // 女性用户数 (gender = 0)
+            Long femaleUsers = genderCount.getOrDefault(0, 0L);
+
+            // 无性别/保密用户数 (gender = 2 或 gender IS NULL)
+            Long unknownUsers = genderCount.getOrDefault(2, 0L) + genderCount.getOrDefault(null, 0L);
+
+            // 调试输出
+            System.out.println("用户总数: " + totalUsers);
+            System.out.println("所有用户gender分布: " + genderCount);
+            System.out.println("男性用户: " + maleUsers);
+            System.out.println("女性用户: " + femaleUsers);
+            System.out.println("未知性别用户: " + unknownUsers);
+            System.out.println("总和检查: " + (maleUsers + femaleUsers + unknownUsers) + " vs " + totalUsers);
+
+            result.put("male", maleUsers);
+            result.put("female", femaleUsers);
+            result.put("unknown", unknownUsers);
+
+        } catch (Exception e) {
+            System.err.println("查询用户性别分布失败: " + e.getMessage());
+            e.printStackTrace();
+
+            // 如果查询失败，返回默认值
+            result.put("male", 0L);
+            result.put("female", 0L);
+            result.put("unknown", 0L);
+        }
 
         return result;
     }
