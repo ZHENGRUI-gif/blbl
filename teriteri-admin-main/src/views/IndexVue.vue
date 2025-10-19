@@ -63,7 +63,7 @@
                 </a>
             </div>
             <div class="aside-middle">
-                <el-menu :default-openeds="defOpenMenu" :default-active="active" class="nav-menu" router="true">
+                <el-menu :default-openeds="defOpenMenu" :default-active="active" class="nav-menu" :router="true">
                     <el-menu-item index="/home">
                         <i class="iconfont icon-shouye1"></i>
                         <span>首页</span>
