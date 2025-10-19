@@ -19,6 +19,11 @@ export function get(url, config) {
   // 请求拦截
   instance.interceptors.request.use(
     (config) => {
+      // 自动添加认证头
+      const token = localStorage.getItem("teri_token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
       return config;
     },
     (err) => {
@@ -103,6 +108,11 @@ export function post(url, data, headers) {
   // 请求拦截
   instance.interceptors.request.use(
     (config) => {
+      // 自动添加认证头
+      const token = localStorage.getItem("teri_token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
       return config;
     },
     (err) => {

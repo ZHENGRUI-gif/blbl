@@ -24,4 +24,5 @@ public class Danmu {
     private Integer state;  // 弹幕状态 1默认过审 2被举报审核中 3删除
 //    @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone = "Asia/Shanghai")
     private Date createDate;    // 弹幕发送日期时间
+    // MyBatis会自动将createDate映射到数据库的create_date字段
 }
