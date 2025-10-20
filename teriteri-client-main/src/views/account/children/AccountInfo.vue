@@ -36,7 +36,12 @@
             <div class="form-item user-location">
                 <label class="form-item__label">所在地:</label>
                 <div class="form-item__content">
-                    <el-input type="text" placeholder="请输入您的所在地" v-model="location" maxlength="100" />
+                    <LocationSelector
+                        v-model="location"
+                        @locationText="handleLocationTextChange"
+                        placeholder="请选择您的所在地"
+                        style="width: 618px;"
+                    />
                 </div>
             </div>
             <div class="form-item submit-btn">
@@ -54,24 +59,31 @@
 <script>
 import { ElMessage } from 'element-plus';
 import { getNicknameLength } from '@/utils/utils';
+import LocationSelector from '@/components/LocationSelector/index.vue';
 
 export default {
     name: "AccountInfo",
+    components: {
+        LocationSelector
+    },
     data() {
         return {
             nickname: "",
             description: "",
             gender: 2,
-            location: "",
+            location: [], // 地区代码数组，如 ["110000", "110100", "110101"]
+            locationText: "", // 显示的地区文本，如 "北京市 北京市 东城区"
             isLoading: false,
         }
     },
     computed: {
         hadChanged() {
+            const currentLocationText = this.locationText || '';
+            const storeLocationText = this.$store.state.user.location || '';
             return this.nickname !== this.$store.state.user.nickname ||
                     this.description !== this.$store.state.user.description ||
                     this.gender !== this.$store.state.user.gender ||
-                    this.location !== (this.$store.state.user.location || '');
+                    currentLocationText !== storeLocationText;
         }
     },
     methods: {
@@ -91,8 +103,8 @@ export default {
             formData.append("nickname", this.nickname);
             formData.append("description", this.description);
             formData.append("gender", this.gender);
-            if (this.location) {
-                formData.append("location", this.location);
+            if (this.locationText) {
+                formData.append("location", this.locationText);
             }
             const res = await this.$post("/user/info/update", formData, {
                 headers: { Authorization: "Bearer " + localStorage.getItem("teri_token") }
@@ -104,13 +116,17 @@ export default {
             this.$store.state.user.nickname = this.nickname;
             this.$store.state.user.description = this.description;
             this.$store.state.user.gender = this.gender;
-            this.$store.state.user.location = this.location;
+            this.$store.state.user.location = this.locationText;
             this.isLoading = false;
             ElMessage.success("信息更新成功")
         },
 
         getNicknameLength(name) {
             return getNicknameLength(name);
+        },
+
+        handleLocationTextChange(locationText) {
+            this.locationText = locationText;
         }
     },
     mounted() {
@@ -118,7 +134,12 @@ export default {
             this.nickname = this.$store.state.user.nickname;
             this.description = this.$store.state.user.description;
             this.gender = this.$store.state.user.gender;
-            this.location = this.$store.state.user.location || '';
+            const userLocation = this.$store.state.user.location || '';
+            if (userLocation) {
+                this.locationText = userLocation;
+                // 这里可以根据需要将文本转换回地区代码数组
+                // 但由于目前后端存储的是文本，这里暂时保持文本形式
+            }
         }
     }
 }
@@ -249,7 +270,7 @@ export default {
     margin-top: 20px;
 }
 
-.user-location .el-input {
+.user-location .location-selector {
     float: left;
     width: 618px;
     height: 30px;
