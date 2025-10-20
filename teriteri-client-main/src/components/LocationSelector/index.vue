@@ -28,7 +28,7 @@ export default {
             default: '请选择所在地'
         }
     },
-    emits: ['update:modelValue', 'change'],
+    emits: ['update:modelValue', 'change', 'locationText'],
     data() {
         return {
             selectedLocation: this.modelValue,
