@@ -117,12 +117,16 @@
                                     </div>
                                     <div class="hot-video-actions">
                                         <el-button 
+                                            v-if="!isVideoInCarousel(video.vid)"
                                             type="primary" 
                                             size="small"
                                             @click="replaceCarouselWithHot(video)"
                                         >
                                             替换轮播图
                                         </el-button>
+                                        <el-tag v-else type="success" size="small">
+                                            已在轮播图中
+                                        </el-tag>
                                     </div>
                                 </div>
                                 <div class="no-data" v-if="!loadingHotVideos && hotVideos.length === 0">
@@ -360,11 +364,15 @@
                             :key="carousel.vid"
                             :label="`#${carousel.vid} - ${carousel.title}`"
                             :value="carousel.vid"
+                            :disabled="carousel.vid === replaceForm.newVideo?.vid"
                         >
-                            <div class="carousel-option">
+                            <div class="carousel-option" :class="{ 'is-current': carousel.vid === replaceForm.newVideo?.vid }">
                                 <img :src="carousel.url" class="carousel-option-cover" alt="">
                                 <div class="carousel-option-info">
-                                    <div class="carousel-option-title">{{ carousel.title }}</div>
+                                    <div class="carousel-option-title">
+                                        {{ carousel.title }}
+                                        <span v-if="carousel.vid === replaceForm.newVideo?.vid" class="current-tag">当前视频</span>
+                                    </div>
                                     <div class="carousel-option-meta">
                                         <span class="carousel-option-id">#{{ carousel.vid }}</span>
                                         <span class="carousel-option-sort">排序: {{ carousel.sort }}</span>
@@ -373,6 +381,10 @@
                             </div>
                         </el-option>
                     </el-select>
+                    <div class="select-tip" v-if="carousels.some(c => c.vid === replaceForm.newVideo?.vid)">
+                        <i class="iconfont icon-info"></i>
+                        提示：当前视频已在轮播图中（灰色不可选）
+                    </div>
                 </div>
 
                 <!-- 底色选择 -->
@@ -784,6 +796,11 @@ export default {
             return num;
         },
 
+        // 检查视频是否已在轮播图中
+        isVideoInCarousel(vid) {
+            return this.carousels.some(carousel => carousel.vid === vid);
+        },
+
         // 显示替换对话框（热门视频）
         async replaceCarouselWithHot(video) {
             if (this.carousels.length === 0) {
@@ -803,6 +820,12 @@ export default {
         async confirmReplace() {
             if (!this.replaceForm.targetVid) {
                 ElMessage.warning('请选择要替换的轮播图');
+                return;
+            }
+
+            // 检查是否选择了同一个视频（自我替换）
+            if (this.replaceForm.targetVid === this.replaceForm.newVideo.vid) {
+                ElMessage.warning('不能用同一个视频替换自己哦~');
                 return;
             }
 
@@ -1501,6 +1524,11 @@ export default {
     flex-shrink: 0;
 }
 
+.hot-video-actions .el-tag {
+    font-size: 12px;
+    padding: 4px 10px;
+}
+
 .pagination-wrapper {
     padding: 16px;
     border-top: 1px solid #e7e7e7;
@@ -1665,5 +1693,36 @@ export default {
 
 .carousel-option-sort {
     color: var(--text3);
+}
+
+/* 当前视频标识 */
+.carousel-option.is-current {
+    opacity: 0.5;
+}
+
+.current-tag {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    background: #909399;
+    color: #fff;
+    margin-left: 6px;
+}
+
+.select-tip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #856404;
+}
+
+.select-tip .iconfont {
+    font-size: 14px;
 }
 </style>
