@@ -82,67 +82,159 @@
 
         <!-- 添加/编辑对话框 -->
         <el-dialog 
-            :title="dialogTitle" 
             v-model="dialogVisible" 
-            width="600px"
+            width="680px"
+            :close-on-click-modal="false"
             @close="resetForm"
+            class="carousel-dialog"
         >
-            <el-form :model="form" label-width="100px">
-                <el-form-item label="视频ID" v-if="!isEdit">
+            <template #header>
+                <div class="dialog-header">
+                    <div class="dialog-title">
+                        <i class="iconfont" :class="isEdit ? 'icon-bianji' : 'icon-tianjia'" style="margin-right: 8px;"></i>
+                        {{ dialogTitle }}
+                    </div>
+                    <div class="dialog-subtitle">{{ isEdit ? '修改轮播图配置' : '添加视频到轮播图' }}</div>
+                </div>
+            </template>
+
+            <div class="dialog-content">
+                <!-- 视频ID输入 -->
+                <div class="section" v-if="!isEdit">
+                    <div class="section-title">
+                        <i class="iconfont icon-shipin"></i>
+                        <span>视频ID</span>
+                        <span class="required">*</span>
+                    </div>
                     <el-input 
                         v-model.number="form.vid" 
                         type="number" 
-                        placeholder="请输入视频ID"
+                        size="large"
+                        placeholder="请输入视频ID后按回车或点击查询"
                         @blur="loadVideoInfo"
+                        @keyup.enter="loadVideoInfo"
+                        class="vid-input"
                     >
                         <template #append>
-                            <el-button @click="loadVideoInfo">查询</el-button>
+                            <el-button @click="loadVideoInfo" :icon="'Search'">查询</el-button>
                         </template>
                     </el-input>
-                </el-form-item>
-                <el-form-item label="视频ID" v-else>
-                    <el-input v-model="form.vid" disabled></el-input>
-                </el-form-item>
-                <el-form-item label="视频信息" v-if="videoInfo.title">
-                    <div class="video-info">
-                        <img :src="videoInfo.coverUrl" class="video-preview" alt="">
-                        <div class="video-detail">
-                            <div class="video-title">{{ videoInfo.title }}</div>
-                            <div class="video-status">
-                                状态: 
-                                <span :style="{color: videoInfo.status === 1 ? '#67c23a' : '#f56c6c'}">
+                </div>
+
+                <!-- 视频ID显示（编辑模式） -->
+                <div class="section" v-else>
+                    <div class="section-title">
+                        <i class="iconfont icon-shipin"></i>
+                        <span>视频ID</span>
+                    </div>
+                    <el-input v-model="form.vid" size="large" disabled class="vid-display"></el-input>
+                </div>
+
+                <!-- 视频信息卡片 -->
+                <div class="section" v-if="videoInfo.title">
+                    <div class="section-title">
+                        <i class="iconfont icon-xinxi"></i>
+                        <span>视频信息</span>
+                    </div>
+                    <div class="video-info-card">
+                        <img :src="videoInfo.coverUrl" class="video-info-cover" alt="">
+                        <div class="video-info-detail">
+                            <div class="video-info-title">{{ videoInfo.title }}</div>
+                            <div class="video-info-status">
+                                <span class="status-label">状态:</span>
+                                <span class="status-value" :class="'status-' + videoInfo.status">
                                     {{ getVideoStatusText(videoInfo.status) }}
                                 </span>
                             </div>
                         </div>
                     </div>
-                </el-form-item>
-                <el-form-item label="底色">
-                    <el-input v-model="form.color" placeholder="请输入底色，如 #ca8d6b">
-                        <template #prepend>
-                            <div :style="{backgroundColor: form.color, width: '30px', height: '30px'}"></div>
-                        </template>
-                    </el-input>
-                </el-form-item>
-                <el-form-item label="排序">
-                    <el-input-number v-model="form.sort" :min="0" :max="999"></el-input-number>
-                    <span style="color: #909399; font-size: 12px; margin-left: 10px;">数字越小越靠前</span>
-                </el-form-item>
-                <el-form-item label="状态" v-if="isEdit">
+                </div>
+
+                <!-- 底色选择 -->
+                <div class="section">
+                    <div class="section-title">
+                        <i class="iconfont icon-yanse"></i>
+                        <span>轮播图底色</span>
+                        <span class="required">*</span>
+                    </div>
+                    <div class="color-picker-wrapper">
+                        <div class="color-preview" :style="{backgroundColor: form.color}"></div>
+                        <el-input 
+                            v-model="form.color" 
+                            placeholder="输入颜色值，如 #ca8d6b"
+                            size="large"
+                            class="color-input"
+                        >
+                            <template #prepend>
+                                <span style="color: var(--text2);">HEX</span>
+                            </template>
+                        </el-input>
+                    </div>
+                    <div class="color-presets">
+                        <span class="color-preset-label">推荐配色:</span>
+                        <div 
+                            v-for="color in presetColors" 
+                            :key="color"
+                            class="color-preset-item"
+                            :class="{ active: form.color === color }"
+                            :style="{backgroundColor: color}"
+                            @click="form.color = color"
+                            :title="color"
+                        ></div>
+                    </div>
+                </div>
+
+                <!-- 排序 -->
+                <div class="section">
+                    <div class="section-title">
+                        <i class="iconfont icon-paixu"></i>
+                        <span>显示排序</span>
+                        <span class="tip">(数字越小越靠前)</span>
+                    </div>
+                    <el-input-number 
+                        v-model="form.sort" 
+                        :min="0" 
+                        :max="999"
+                        size="large"
+                        class="sort-input"
+                        controls-position="right"
+                    ></el-input-number>
+                </div>
+
+                <!-- 状态开关（仅编辑时显示） -->
+                <div class="section" v-if="isEdit">
+                    <div class="section-title">
+                        <i class="iconfont icon-zhuangtai"></i>
+                        <span>启用状态</span>
+                    </div>
                     <el-switch
                         v-model="form.status"
                         :active-value="1"
                         :inactive-value="0"
                         active-text="启用"
                         inactive-text="禁用"
+                        size="large"
+                        class="status-switch"
                     ></el-switch>
-                </el-form-item>
-            </el-form>
+                </div>
+            </div>
+
             <template #footer>
-                <span class="dialog-footer">
-                    <el-button @click="dialogVisible = false">取消</el-button>
-                    <el-button type="primary" @click="submitForm" :disabled="!videoInfo.title">确定</el-button>
-                </span>
+                <div class="dialog-footer">
+                    <el-button size="large" @click="dialogVisible = false">
+                        <i class="iconfont icon-guanbi" style="margin-right: 4px;"></i>
+                        取消
+                    </el-button>
+                    <el-button 
+                        type="primary" 
+                        size="large"
+                        @click="submitForm" 
+                        :disabled="!videoInfo.title"
+                    >
+                        <i class="iconfont icon-duihao" style="margin-right: 4px;"></i>
+                        确定
+                    </el-button>
+                </div>
             </template>
         </el-dialog>
     </div>
@@ -170,7 +262,19 @@ export default {
                 title: '',
                 coverUrl: '',
                 status: 0
-            }
+            },
+            presetColors: [
+                '#ca8d6b',
+                '#5894d4',
+                '#836e61',
+                '#728cb4',
+                '#f56c6c',
+                '#67c23a',
+                '#e6a23c',
+                '#909399',
+                '#ff6b9d',
+                '#c084fc'
+            ]
         }
     },
     methods: {
@@ -569,38 +673,259 @@ export default {
     line-height: 40px;
 }
 
-.video-info {
+/* ========== 轮播图编辑弹窗样式 ========== */
+.carousel-dialog :deep(.el-dialog__header) {
+    padding: 0;
+    margin: 0;
+}
+
+.carousel-dialog :deep(.el-dialog__body) {
+    padding: 0;
+}
+
+.carousel-dialog :deep(.el-dialog__footer) {
+    padding: 0;
+}
+
+.dialog-header {
+    padding: 24px 24px 20px;
+    border-bottom: 1px solid #e7e7e7;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.dialog-title {
+    font-size: 20px;
+    font-weight: 600;
     display: flex;
-    gap: 15px;
-    padding: 10px;
-    border: 1px solid #dcdfe6;
-    border-radius: 4px;
-    background-color: #f5f7fa;
+    align-items: center;
+    margin-bottom: 6px;
 }
 
-.video-preview {
-    width: 120px;
-    height: 68px;
+.dialog-subtitle {
+    font-size: 13px;
+    opacity: 0.9;
+    padding-left: 28px;
+}
+
+.dialog-content {
+    padding: 24px;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.section {
+    margin-bottom: 24px;
+}
+
+.section:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text1);
+    margin-bottom: 12px;
+}
+
+.section-title .iconfont {
+    font-size: 18px;
+    color: var(--brand_pink);
+}
+
+.required {
+    color: #f56c6c;
+    font-size: 16px;
+    margin-left: auto;
+}
+
+.tip {
+    color: var(--text3);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* 视频ID输入框 */
+.vid-input {
+    width: 100%;
+}
+
+.vid-display {
+    width: 100%;
+}
+
+/* 视频信息卡片 */
+.video-info-card {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(240, 147, 251, 0.08) 0%, rgba(245, 87, 108, 0.08) 100%);
+    border: 2px solid rgba(240, 147, 251, 0.2);
+    transition: all 0.3s;
+}
+
+.video-info-card:hover {
+    border-color: rgba(240, 147, 251, 0.4);
+    box-shadow: 0 4px 12px rgba(240, 147, 251, 0.15);
+}
+
+.video-info-cover {
+    width: 160px;
+    height: 90px;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.video-detail {
+.video-info-detail {
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    min-width: 0;
 }
 
-.video-title {
-    font-size: 14px;
+.video-info-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text1);
+    margin-bottom: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.5;
+}
+
+.video-info-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.status-label {
+    color: var(--text2);
+}
+
+.status-value {
+    padding: 2px 10px;
+    border-radius: 12px;
     font-weight: 500;
-    margin-bottom: 8px;
-    color: #303133;
+    font-size: 12px;
 }
 
-.video-status {
-    font-size: 12px;
-    color: #606266;
+.status-value.status-0 {
+    background: #fdf6ec;
+    color: #e6a23c;
+}
+
+.status-value.status-1 {
+    background: #f0f9ff;
+    color: #67c23a;
+}
+
+.status-value.status-2 {
+    background: #fef0f0;
+    color: #f56c6c;
+}
+
+.status-value.status-3 {
+    background: #f4f4f5;
+    color: #909399;
+}
+
+/* 颜色选择器 */
+.color-picker-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.color-preview {
+    width: 60px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid #e7e7e7;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+}
+
+.color-preview:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.color-input {
+    flex: 1;
+}
+
+.color-presets {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--graph_bg_thick);
+    border-radius: 8px;
+}
+
+.color-preset-label {
+    font-size: 13px;
+    color: var(--text2);
+    margin-right: 4px;
+}
+
+.color-preset-item {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.color-preset-item:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.color-preset-item.active {
+    border-color: var(--text1);
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 排序输入框 */
+.sort-input {
+    width: 200px;
+}
+
+/* 状态开关 */
+.status-switch {
+    display: block;
+}
+
+/* 弹窗底部 */
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid #e7e7e7;
+    background: var(--graph_bg_thick);
+}
+
+.dialog-footer .el-button {
+    min-width: 100px;
 }
 </style>
