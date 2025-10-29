@@ -582,4 +582,49 @@ public class VideoController {
         
         return customResponse;
     }
+
+    /**
+     * 获取全站热门视频（按播放量排序）
+     * @param page 分页 从1开始
+     * @param quantity 每页查询数量
+     * @return 热门视频列表，包含总数和列表
+     */
+    @GetMapping("/video/hot/get")
+    public CustomResponse getHotVideos(@RequestParam(value = "page", defaultValue = "1") Integer page,
+                                      @RequestParam(value = "quantity", defaultValue = "10") Integer quantity) {
+        CustomResponse customResponse = new CustomResponse();
+        Map<String, Object> resultMap = new HashMap<>();
+        
+        try {
+            // 获取所有已审核通过的视频
+            Set<Object> approvedVideos = redisUtil.getMembers("video_status:1");
+            if (approvedVideos == null || approvedVideos.isEmpty()) {
+                resultMap.put("count", 0);
+                resultMap.put("list", Collections.emptyList());
+                customResponse.setData(resultMap);
+                return customResponse;
+            }
+            
+            List<Integer> videoIds = new ArrayList<>();
+            for (Object vidObj : approvedVideos) {
+                videoIds.add((Integer) vidObj);
+            }
+            
+            // 按播放量降序排序并分页返回
+            List<Map<String, Object>> result = videoService.getVideosWithDataByIdsOrderByDesc(
+                videoIds, "play", page, quantity
+            );
+            
+            // 返回总数和列表
+            resultMap.put("count", videoIds.size());
+            resultMap.put("list", result);
+            customResponse.setData(resultMap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            customResponse.setCode(500);
+            customResponse.setMessage("获取热门视频失败: " + e.getMessage());
+        }
+        
+        return customResponse;
+    }
 }
