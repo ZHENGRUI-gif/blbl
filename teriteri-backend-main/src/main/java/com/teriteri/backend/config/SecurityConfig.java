@@ -95,6 +95,7 @@ public class SecurityConfig {
                                 "/user/account/login",
                                 "/admin/account/login",
                                 "/category/getall",
+                                "/carousel/list",
                                 "/video/random/visitor",
                                 "/video/cumulative/visitor",
                                 "/video/getone",

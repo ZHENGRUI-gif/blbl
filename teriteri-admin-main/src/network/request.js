@@ -173,3 +173,143 @@ export function post(url, data, headers) {
   }
   return instance.post(url, data);  // 没请求头
 }
+
+// put请求
+export function put(url, data, config) {
+
+  // 请求超过30秒则判定为超时
+  const instance = axios.create({
+    baseURL: '/api',
+    timeout: 30000,
+    withCredentials: true,
+  });
+
+  // axios拦截器
+  // 请求拦截
+  instance.interceptors.request.use(
+    (config) => {
+      // 自动添加认证头
+      const token = localStorage.getItem("teri_token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (err) => {
+      console.log(err);
+    },
+  );
+
+  // 响应拦截
+  instance.interceptors.response.use(
+    (config) => {
+      const code = config.data.code;
+      if (code !== 200) {
+        ElMessage.error(config.data.message || '未知错误, 请打开控制台查看');
+        if (config.data.message == "您不是管理员，无权访问") {
+          store.state.isLogin = false;
+          store.state.user = {};
+          localStorage.removeItem("teri_token");
+          store.state.isLoading = false;
+          router.push("/login");
+        }
+      }
+      return config;
+    },
+    (err) => {
+      console.log(err);
+      if (err.response && err.response.headers.message === 'not login') {
+        store.state.isLogin = false;
+        store.state.user = {};
+        localStorage.removeItem("teri_token");
+        ElMessage.error("请登录后查看");
+        store.state.isLoading = false;
+        router.push("/login");
+      } else {
+        ElMessage.error("特丽丽被玩坏了(¯﹃¯)");
+        store.state.isLoading = false;
+      }
+    },
+  );
+
+  instance.defaults.withCredentials = true;
+
+  if (config && config.headers) {
+    return instance.put(url, data, config);
+  }
+  return instance.put(url, data);
+}
+
+// delete请求
+export function del(url, config) {
+
+  // 请求超过30秒则判定为超时
+  const instance = axios.create({
+    baseURL: '/api',
+    timeout: 30000,
+    withCredentials: true,
+  });
+
+  // axios拦截器
+  // 请求拦截
+  instance.interceptors.request.use(
+    (config) => {
+      // 自动添加认证头
+      const token = localStorage.getItem("teri_token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (err) => {
+      console.log(err);
+    },
+  );
+
+  // 响应拦截
+  instance.interceptors.response.use(
+    (config) => {
+      const code = config.data.code;
+      if (code !== 200) {
+        ElMessage.error(config.data.message || '未知错误, 请打开控制台查看');
+        if (config.data.message == "您不是管理员，无权访问") {
+          store.state.isLogin = false;
+          store.state.user = {};
+          localStorage.removeItem("teri_token");
+          store.state.isLoading = false;
+          router.push("/login");
+        }
+      }
+      return config;
+    },
+    (err) => {
+      console.log(err);
+      if (err.response && err.response.headers.message === 'not login') {
+        store.state.isLogin = false;
+        store.state.user = {};
+        localStorage.removeItem("teri_token");
+        ElMessage.error("请登录后查看");
+        store.state.isLoading = false;
+        router.push("/login");
+      } else {
+        ElMessage.error("特丽丽被玩坏了(¯﹃¯)");
+        store.state.isLoading = false;
+      }
+    },
+  );
+
+  instance.defaults.withCredentials = true;
+
+  if (config) {
+    if (config.params) {
+      if (config.headers) {
+        return instance.delete(url, {params: config.params, headers: config.headers});
+      }
+      return instance.delete(url, {params: config.params});
+    }
+    if (config.headers) {
+      return instance.delete(url, config);
+    }
+  }
+  return instance.delete(url);
+}

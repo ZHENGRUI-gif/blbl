@@ -39,7 +39,7 @@
 </template>
 
 <script>
-    import carouselJson from 'assets/json/carousel.json';
+    // import carouselJson from 'assets/json/carousel.json';
 
     let timer;  // 定时器
 
@@ -60,10 +60,22 @@
             }
         },
         methods: {
-            // 请求
-            getCarousels() {
-                this.carousels = carouselJson;
-                this.$store.commit("updateCarousels", this.carousels.slice());
+            // 请求 - 从后端API获取轮播图数据
+            async getCarousels() {
+                try {
+                    const res = await this.$get('/carousel/list');
+                    if (res && res.data && res.data.data && res.data.data.length > 0) {
+                        this.carousels = res.data.data;
+                        this.$store.commit("updateCarousels", this.carousels.slice());
+                    } else {
+                        console.warn("暂无轮播图数据");
+                        this.carousels = [];
+                    }
+                } catch (error) {
+                    console.error("获取轮播图失败:", error);
+                    // 如果API失败，使用空数组
+                    this.carousels = [];
+                }
             },
 
             async refreshTimer() {
@@ -151,13 +163,16 @@
                 this.startTimer();
             },
         },
-        created() {
-            this.getCarousels();
+        async created() {
+            await this.getCarousels();
         },
         mounted() {
-            this.startTimer();
-            this.color = this.carousels[1].color;
-            this.title = this.carousels[1].title;
+            // 确保有轮播图数据再启动定时器
+            if (this.carousels && this.carousels.length > 1) {
+                this.startTimer();
+                this.color = this.carousels[1].color;
+                this.title = this.carousels[1].title;
+            }
         },
         beforeMount() {
             clearTimeout(timer);
